@@ -1,0 +1,218 @@
+-----cleaning data using SQL----------
+
+ 
+
+select *
+
+from Project..NashvilleHousing
+
+ 
+
+--Standerdise Date Format
+
+ 
+
+select SaleDate, SaleDateConverted
+
+from Project..NashvilleHousing
+
+ 
+
+Alter table NashvilleHousing
+
+add SaleDateConverted date
+
+ 
+
+update NashvilleHousing
+
+set SaleDateConverted = CONVERT(date, SaleDate)
+
+ 
+
+ 
+
+--Populate property address data
+
+ 
+
+select *
+
+from Project..NashvilleHousing
+
+--where PropertyAddress is null
+
+order by ParcelID
+
+ 
+
+ 
+
+--Here using ISNULL feature we have put address which were having same parcelID but are null so no address cell will be blanck.
+
+ 
+
+select a.ParcelID, a.PropertyAddress, b.ParcelID, b.PropertyAddress, ISNULL(a.PropertyAddress, b.PropertyAddress)
+
+from Project..NashvilleHousing a
+
+                join Project..NashvilleHousing b
+
+                                on a.ParcelID = b.ParcelID
+
+                                and a.[UniqueID ] <> b.[UniqueID ]
+
+where a.PropertyAddress is null
+
+ 
+
+update a
+
+set PropertyAddress = ISNULL(a.PropertyAddress, b.PropertyAddress)
+
+from Project..NashvilleHousing a
+
+                join Project..NashvilleHousing b
+
+                                on a.ParcelID = b.ParcelID
+
+                                and a.[UniqueID ] <> b.[UniqueID ]
+
+where a.PropertyAddress is null
+
+ 
+ 
+
+--Breaking/Splitting out address coloumn into different coloumns (Address, City, State)
+
+--Here we have used substrig function to split the cell, also used -1 and +1 to get the exact location from where we want our cells to split
+
+ 
+
+select substring (PropertyAddress, 1, CHARINDEX(',', PropertyAddress)-1) as Address,
+
+substring (PropertyAddress, CHARINDEX(',', PropertyAddress)+1, LEN(PropertyAddress))as Address
+
+from Project..NashvilleHousing
+
+ 
+
+Alter table NashvilleHousing
+
+add SplitPropertyAddress nvarchar(255)
+
+ 
+
+update NashvilleHousing
+
+set SplitPropertyAddress = substring (PropertyAddress, 1, CHARINDEX(',', PropertyAddress)-1)
+
+ 
+
+Alter table NashvilleHousing
+
+add SplitPropertyCity nvarchar(255)
+
+ 
+
+update NashvilleHousing
+
+set SplitPropertyCity = substring (PropertyAddress, CHARINDEX(',', PropertyAddress)+1, LEN(PropertyAddress))
+
+ 
+
+ 
+
+--Lets Split ownerAddress using PARSENAME - works the same way and is a lot easier
+
+--and the most important thing to note is it works or count it's index backword.
+
+--PARSENAME specially used to work with delimeters (.), so we are going to convert "," into "." and then we'll split it.
+
+ 
+
+ 
+
+Select
+
+PARSENAME(Replace(OwnerAddress,',', '.'),3),
+
+PARSENAME(Replace(OwnerAddress,',', '.'),2),
+
+PARSENAME(Replace(OwnerAddress,',', '.'),1)
+
+from Project..NashvilleHousing
+
+ 
+
+ 
+
+Alter table NashvilleHousing
+
+add SplitOwnerAddress nvarchar(255)
+
+ 
+
+update NashvilleHousing
+
+set SplitOwnerAddress = PARSENAME(Replace(OwnerAddress,',', '.'),3)
+
+ 
+
+Alter table NashvilleHousing
+
+add SplitOwnerCity nvarchar(255)
+
+ 
+
+update NashvilleHousing
+
+set SplitOwnerCity = PARSENAME(Replace(OwnerAddress,',', '.'),2)
+
+ 
+
+Alter table NashvilleHousing
+
+add SplitOwnerState nvarchar(255)
+
+ 
+
+update NashvilleHousing
+
+set SplitOwnerState = PARSENAME(Replace(OwnerAddress,',', '.'),1)
+
+ 
+
+Select *
+
+from Project..NashvilleHousing
+
+ 
+
+ 
+
+---Change Y as Yes and N as NO in "SoldAsVacant" coloumn
+
+ 
+
+select distinct(SoldAsVacant), count(SoldAsVacant)
+
+from Project..NashvilleHousing
+
+group by SoldAsVacant
+
+order by 2
+
+ 
+
+Select SoldAsVacant,
+
+case when SoldAsVacant = 'Y' then 'Yes'
+
+                when SoldAsVacant = 'N' then 'No'
+
+                else SoldAsVacant
+
+                end
+
+from Project..NashvilleHousing
